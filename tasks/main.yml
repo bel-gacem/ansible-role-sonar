@@ -65,7 +65,7 @@
 
 - name: Copy SonarQube systemd unit file into place (for systemd systems).
   template:
-    src: sonar.service
+    src: sonar.service.j2
     dest: /usr/lib/systemd/system/sonar.service
     owner: root
     group: root
@@ -75,7 +75,7 @@
 # https://docs.sonarqube.org/display/SONAR/Requirements  
 - name: Adjust open descriptors
   template:
-    src: 98-sonarqube.conf.j2
+    src: 99-sonarqube.conf.j2
     dest: /etc/limits.d/
     owner: root
     group: root
