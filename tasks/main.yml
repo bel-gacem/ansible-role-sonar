@@ -65,8 +65,8 @@
 
 - name: Copy SonarQube systemd unit file into place (for systemd systems).
   template:
-    src: sonar.service.j2
-    dest: /usr/lib/systemd/system
+    src: sonar.service
+    dest: /usr/lib/systemd/system/sonar.service
     owner: root
     group: root
     mode: 0664
