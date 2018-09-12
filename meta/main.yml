@@ -1,7 +1,8 @@
 ---
 dependencies:
   - geerlingguy.java
-  - geerlingguy.mysql
+  # disable mysql role as it will install mariadb 5.5 which is no longer supported by sonarQube
+  # - geerlingguy.mysql
 
 galaxy_info:
   author: geerlingguy

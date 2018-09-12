@@ -1,10 +1,20 @@
 ---
+# Later versions of ElasticSearch must not be run as root
+- name: Add user to run SonarQube
+  user:
+    name: "{{ sonar_username }}"
+    uid: 1099
+    password_lock: yes
+    home: /usr/local/sonar
+    create_home: no
+    shell: /sbin/nologin
+  
 - name: Create a database for Sonar.
   mysql_db:
     name: "{{ sonar_mysql_database }}"
     state: present
 
-- name: Create a sonar user.
+- name: Create a mysql sonar user.
   mysql_user:
     name: "{{ sonar_mysql_username }}"
     host: "{{ item }}"
@@ -18,14 +28,21 @@
     dest: "{{ workspace }}/{{ sonar_version_directory }}.zip"
     validate_certs: "{{ sonar_download_validate_certs }}"
 
+- name: Ensure unzip is installed
+  yum:
+    name: unzip  
+    state: present
+    
 - name: Unzip Sonar.
   unarchive:
     src: "{{ workspace }}/{{ sonar_version_directory }}.zip"
     dest: /usr/local/
     copy: no
     creates: /usr/local/sonar/COPYING
+    owner: "{{ sonar_username }}"
+    group: "{{ sonar_username }}"
 
-- name: Move Sonar into place.
+- name: Rename sonar directory
   shell: >
     mv /usr/local/{{ sonar_version_directory }} /usr/local/sonar
     creates=/usr/local/sonar/COPYING
@@ -48,12 +65,31 @@
 
 - name: Copy SonarQube systemd unit file into place (for systemd systems).
   template:
-    src: sonar.unit.j2
-    dest: /etc/systemd/system/sonar.service
+    src: sonar.service.j2
+    dest: /usr/lib/systemd/system
     owner: root
     group: root
-    mode: 0755
+    mode: 0664
   when: "ansible_service_mgr == 'systemd'"
+
+# https://docs.sonarqube.org/display/SONAR/Requirements  
+- name: Adjust open descriptors
+  template:
+    src: 98-sonarqube.conf.j2
+    dest: /etc/limits.d/
+    owner: root
+    group: root
+    mode: 0664
+  when: "ansible_service_mgr == 'systemd'"  
+
+- name: Adjust vm.max_map_count
+  sysctl:
+    name: vm.max_map_count
+    value: 262144
+    sysctl_set: yes
+    state: present
+    reload: yes
+  
 
 - name: Ensure Sonar is running and set to start on boot.
   service: name=sonar state=started enabled=yes
